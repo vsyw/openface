@@ -14,6 +14,7 @@
 		7F04B2E41F6E776D00297CF9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7F04B2E21F6E776D00297CF9 /* LaunchScreen.storyboard */; };
 		7F04B2EF1F6E776D00297CF9 /* openfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2EE1F6E776D00297CF9 /* openfaceTests.swift */; };
 		7F04B2FA1F6E776D00297CF9 /* openfaceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2F91F6E776D00297CF9 /* openfaceUITests.swift */; };
+		7F04B30E1F6ECF7D00297CF9 /* OpenFace.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B30D1F6ECF7900297CF9 /* OpenFace.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,8 @@
 		7F04B2F51F6E776D00297CF9 /* openfaceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = openfaceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7F04B2F91F6E776D00297CF9 /* openfaceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = openfaceUITests.swift; sourceTree = "<group>"; };
 		7F04B2FB1F6E776D00297CF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7F04B30D1F6ECF7900297CF9 /* OpenFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = OpenFace.mlmodel; path = "../../ML/keras-facenet/model/OpenFace.mlmodel"; sourceTree = "<group>"; };
+		7F04B30F1F6ED44100297CF9 /* OpenFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = OpenFace.mlmodel; path = "../../../ML/keras-facenet/model/OpenFace.mlmodel"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +80,7 @@
 		7F04B2CD1F6E776D00297CF9 = {
 			isa = PBXGroup;
 			children = (
+				7F04B30D1F6ECF7900297CF9 /* OpenFace.mlmodel */,
 				7F04B2D81F6E776D00297CF9 /* openface */,
 				7F04B2ED1F6E776D00297CF9 /* openfaceTests */,
 				7F04B2F81F6E776D00297CF9 /* openfaceUITests */,
@@ -97,6 +101,7 @@
 		7F04B2D81F6E776D00297CF9 /* openface */ = {
 			isa = PBXGroup;
 			children = (
+				7F04B30F1F6ED44100297CF9 /* OpenFace.mlmodel */,
 				7F04B2D91F6E776D00297CF9 /* AppDelegate.swift */,
 				7F04B2DB1F6E776D00297CF9 /* ViewController.swift */,
 				7F04B2DD1F6E776D00297CF9 /* Main.storyboard */,
@@ -260,6 +265,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7F04B2DC1F6E776D00297CF9 /* ViewController.swift in Sources */,
+				7F04B30E1F6ECF7D00297CF9 /* OpenFace.mlmodel in Sources */,
 				7F04B2DA1F6E776D00297CF9 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -427,10 +433,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = ZU5FQW7WG6;
+				DEVELOPMENT_TEAM = 483T6HJCFG;
 				INFOPLIST_FILE = openface/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = victor.openface;
+				PRODUCT_BUNDLE_IDENTIFIER = victor2.FaceDetection;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -442,10 +448,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = ZU5FQW7WG6;
+				DEVELOPMENT_TEAM = 483T6HJCFG;
 				INFOPLIST_FILE = openface/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = victor.openface;
+				PRODUCT_BUNDLE_IDENTIFIER = victor2.FaceDetection;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
