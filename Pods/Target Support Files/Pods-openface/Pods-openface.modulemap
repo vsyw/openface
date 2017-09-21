@@ -1,0 +1,6 @@
+framework module Pods_openface {
+  umbrella header "Pods-openface-umbrella.h"
+
+  export *
+  module * { export * }
+}

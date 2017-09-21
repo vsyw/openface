@@ -8,6 +8,8 @@
 
 import UIKit
 import CoreML
+import AVFoundation
+import Vision
 
 func pixelBufferFromImage(image: UIImage) -> CVPixelBuffer {
     
@@ -61,12 +63,14 @@ func pixelBufferFromImage(image: UIImage) -> CVPixelBuffer {
 
 
 class ViewController: UIViewController {
-
-    var model: OpenFace!
-    
     @IBOutlet weak var preview: UIImageView!
+    
+    var model: OpenFace!
+    var session = AVCaptureSession()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        startLiveVideo()
         generateEmbeddings()
     }
 
@@ -75,10 +79,38 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
+    func startLiveVideo() {
+        //1
+        session.sessionPreset = AVCaptureSession.Preset.photo
+        let captureDevice = AVCaptureDevice.default(for: AVMediaType.video)
+        
+        //2
+        let deviceInput = try! AVCaptureDeviceInput(device: captureDevice!)
+        let deviceOutput = AVCaptureVideoDataOutput()
+        deviceOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+        deviceOutput.setSampleBufferDelegate(self as? AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
+        session.addInput(deviceInput)
+        session.addOutput(deviceOutput)
+        
+        //3
+        let imageLayer = AVCaptureVideoPreviewLayer(session: session)
+        imageLayer.frame = preview.bounds
+        preview.layer.addSublayer(imageLayer)
+        
+        session.startRunning()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        preview.layer.sublayers?[0].frame = preview.bounds
+    }
+    
+    
+    
+    
     func generateEmbeddings() {
         model = OpenFace()
         if let sourceImage = UIImage(named: "Aaron_Eckhart_0001") {
-            preview.image = sourceImage
+//            preview.image = sourceImage
             let inputImage = pixelBufferFromImage(image: sourceImage)
             print("hello")
             do {
