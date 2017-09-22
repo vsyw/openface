@@ -67,10 +67,12 @@ class ViewController: UIViewController {
     
     var model: OpenFace!
     var session = AVCaptureSession()
+    var requests = [VNRequest]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         startLiveVideo()
+        startFaceDetection()
         generateEmbeddings()
     }
 
@@ -94,7 +96,10 @@ class ViewController: UIViewController {
         
         //3
         let imageLayer = AVCaptureVideoPreviewLayer(session: session)
-        imageLayer.frame = preview.bounds
+        print("priview bounds", preview.bounds)
+        imageLayer.frame = view.bounds
+        print("imageLayer Bounds", imageLayer.bounds)
+        print("imgaelayer frame", imageLayer.frame)
         preview.layer.addSublayer(imageLayer)
         
         session.startRunning()
@@ -104,8 +109,21 @@ class ViewController: UIViewController {
         preview.layer.sublayers?[0].frame = preview.bounds
     }
     
+    func startFaceDetection() {
+        let faceRequest = VNDetectFaceRectanglesRequest(completionHandler: self.detectFaceHandler)
+        self.requests = [faceRequest]
+    }
     
-    
+    func detectFaceHandler(request: VNRequest, error: Error?) {
+        guard let observations = request.results else {
+            print("no result")
+            return
+        }
+        let result = observations.map({$0 as? VNFaceObservation})
+        if (result.count > 0) {
+            print("yes", result.count)
+        }
+    }
     
     func generateEmbeddings() {
         model = OpenFace()
@@ -125,7 +143,27 @@ class ViewController: UIViewController {
 
         }
     }
+}
 
-
+extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            return
+        }
+        
+        var requestOptions:[VNImageOption : Any] = [:]
+        
+        if let camData = CMGetAttachment(sampleBuffer, kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix, nil) {
+            requestOptions = [.cameraIntrinsics:camData]
+        }
+        
+        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 6)!, options: requestOptions)
+        
+        do {
+            try imageRequestHandler.perform(self.requests)
+        } catch {
+            print(error)
+        }
+    }
 }
 
