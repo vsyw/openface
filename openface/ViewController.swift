@@ -90,19 +90,19 @@ class ViewController: UIViewController {
         let deviceInput = try! AVCaptureDeviceInput(device: captureDevice!)
         let deviceOutput = AVCaptureVideoDataOutput()
         deviceOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
-        deviceOutput.setSampleBufferDelegate(self as! AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
+        deviceOutput.setSampleBufferDelegate(self as AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
         session.addInput(deviceInput)
         session.addOutput(deviceOutput)
         
         //3
         let videoLayer = AVCaptureVideoPreviewLayer(session: session)
-        videoLayer.frame = view.bounds
+        videoLayer.frame = preview.bounds
         videoLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
         preview.layer.addSublayer(videoLayer)
         
         session.startRunning()
     }
-    
+
     override func viewDidLayoutSubviews() {
         preview.layer.sublayers?[0].frame = preview.bounds
     }
@@ -118,9 +118,40 @@ class ViewController: UIViewController {
             return
         }
         let result = observations.map({$0 as? VNFaceObservation})
-        if (result.count > 0) {
-            print("yes", result.count)
+        DispatchQueue.main.async() {
+            self.preview.layer.sublayers?.removeSubrange(1...)
+            for region in result {
+                guard let rg = region else {
+                    continue
+                }
+                self.highlightFace(faceObservation: rg)
+            }
         }
+    }
+    
+    func highlightFace(faceObservation: VNFaceObservation) {
+        let boundingRect = faceObservation.boundingBox
+        print("boundingRect", boundingRect)
+//        let xCord = box.topLeft.x * preview.frame.size.width
+//        let yCord = (1 - box.topLeft.y) * preview.frame.size.height
+//        let width = (box.topRight.x - box.bottomLeft.x) * preview.frame.size.width
+//        let height = (box.topLeft.y - box.bottomLeft.y) * preview.frame.size.height
+
+        let x = boundingRect.origin.x * preview.frame.size.width
+        let w = boundingRect.width * preview.frame.size.width
+        let h = boundingRect.height * preview.frame.size.height
+        let y = preview.frame.size.height * (1 - boundingRect.origin.y) - h
+        let conv_rect = CGRect(x: x, y: y, width: w, height: h)
+        
+        let outline = CALayer()
+        let rectWidth = preview.frame.size.width * boundingRect.size.width
+        let rectHeight = preview.frame.size.height * boundingRect.size.height
+        
+        outline.frame = conv_rect
+//        outline.frame = CGRect(x: boundingRect.origin.x * preview.frame.size.width, y: boundingRect.origin.y * preview.frame.size.height, width: rectWidth, height: rectHeight)
+        outline.borderWidth = 1.0
+        outline.borderColor = UIColor.blue.cgColor
+        preview.layer.addSublayer(outline)
     }
     
     func generateEmbeddings() {
