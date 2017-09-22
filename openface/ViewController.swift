@@ -90,17 +90,15 @@ class ViewController: UIViewController {
         let deviceInput = try! AVCaptureDeviceInput(device: captureDevice!)
         let deviceOutput = AVCaptureVideoDataOutput()
         deviceOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
-        deviceOutput.setSampleBufferDelegate(self as? AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
+        deviceOutput.setSampleBufferDelegate(self as! AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
         session.addInput(deviceInput)
         session.addOutput(deviceOutput)
         
         //3
-        let imageLayer = AVCaptureVideoPreviewLayer(session: session)
-        print("priview bounds", preview.bounds)
-        imageLayer.frame = view.bounds
-        print("imageLayer Bounds", imageLayer.bounds)
-        print("imgaelayer frame", imageLayer.frame)
-        preview.layer.addSublayer(imageLayer)
+        let videoLayer = AVCaptureVideoPreviewLayer(session: session)
+        videoLayer.frame = view.bounds
+        videoLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
+        preview.layer.addSublayer(videoLayer)
         
         session.startRunning()
     }
