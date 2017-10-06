@@ -73,7 +73,7 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         startLiveVideo()
         startFaceDetection()
-        generateEmbeddings()
+//        generateEmbeddings()
     }
 
     override func didReceiveMemoryWarning() {
@@ -83,7 +83,7 @@ class ViewController: UIViewController {
     
     func startLiveVideo() {
         //1
-        session.sessionPreset = AVCaptureSession.Preset.photo
+        session.sessionPreset = AVCaptureSession.Preset.hd1920x1080
         let captureDevice = AVCaptureDevice.default(for: AVMediaType.video)
         
         //2
@@ -97,7 +97,7 @@ class ViewController: UIViewController {
         //3
         let videoLayer = AVCaptureVideoPreviewLayer(session: session)
         videoLayer.frame = preview.bounds
-        videoLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
+//        videoLayer.videoGravity = AVLayerVideoGravity.
         preview.layer.addSublayer(videoLayer)
         
         session.startRunning()
@@ -113,18 +113,19 @@ class ViewController: UIViewController {
     }
     
     func detectFaceHandler(request: VNRequest, error: Error?) {
-        guard let observations = request.results else {
+        guard let observations = request.results as? [VNFaceObservation] else {
             print("no result")
             return
         }
-        let result = observations.map({$0 as? VNFaceObservation})
+//        let result = observations.map({$0 as? VNFaceObservation})
         DispatchQueue.main.async() {
             self.preview.layer.sublayers?.removeSubrange(1...)
-            for region in result {
-                guard let rg = region else {
-                    continue
-                }
-                self.highlightFace(faceObservation: rg)
+            
+            for region in observations {
+//                guard let rg = region else {
+//                    continue
+//                }
+                self.highlightFace(faceObservation: region)
             }
         }
     }
@@ -132,23 +133,15 @@ class ViewController: UIViewController {
     func highlightFace(faceObservation: VNFaceObservation) {
         let boundingRect = faceObservation.boundingBox
         print("boundingRect", boundingRect)
-//        let xCord = box.topLeft.x * preview.frame.size.width
-//        let yCord = (1 - box.topLeft.y) * preview.frame.size.height
-//        let width = (box.topRight.x - box.bottomLeft.x) * preview.frame.size.width
-//        let height = (box.topLeft.y - box.bottomLeft.y) * preview.frame.size.height
-
-        let x = boundingRect.origin.x * preview.frame.size.width
+        
+        let x = boundingRect.minX * preview.frame.size.width
         let w = boundingRect.width * preview.frame.size.width
         let h = boundingRect.height * preview.frame.size.height
-        let y = preview.frame.size.height * (1 - boundingRect.origin.y) - h
+        let y = preview.frame.size.height * (1 - boundingRect.minY) - h
         let conv_rect = CGRect(x: x, y: y, width: w, height: h)
         
-        let outline = CALayer()
-        let rectWidth = preview.frame.size.width * boundingRect.size.width
-        let rectHeight = preview.frame.size.height * boundingRect.size.height
-        
+        let outline = CAShapeLayer()
         outline.frame = conv_rect
-//        outline.frame = CGRect(x: boundingRect.origin.x * preview.frame.size.width, y: boundingRect.origin.y * preview.frame.size.height, width: rectWidth, height: rectHeight)
         outline.borderWidth = 1.0
         outline.borderColor = UIColor.blue.cgColor
         preview.layer.addSublayer(outline)
