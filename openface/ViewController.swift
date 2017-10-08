@@ -10,6 +10,7 @@ import UIKit
 import CoreML
 import AVFoundation
 import Vision
+import Accelerate
 
 func pixelBufferFromImage(image: UIImage) -> CVPixelBuffer {
     
@@ -75,11 +76,6 @@ class ViewController: UIViewController {
         startFaceDetection()
 //        generateEmbeddings()
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
     
     func startLiveVideo() {
         //1
@@ -97,7 +93,7 @@ class ViewController: UIViewController {
         //3
         let videoLayer = AVCaptureVideoPreviewLayer(session: session)
         videoLayer.frame = preview.bounds
-//        videoLayer.videoGravity = AVLayerVideoGravity.
+        videoLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
         preview.layer.addSublayer(videoLayer)
         
         session.startRunning()
@@ -122,9 +118,6 @@ class ViewController: UIViewController {
             self.preview.layer.sublayers?.removeSubrange(1...)
             
             for region in observations {
-//                guard let rg = region else {
-//                    continue
-//                }
                 self.highlightFace(faceObservation: region)
             }
         }
@@ -147,22 +140,66 @@ class ViewController: UIViewController {
         preview.layer.addSublayer(outline)
     }
     
+    func cropFace(imageBuffer: CVPixelBuffer, region: CGRect) -> CVPixelBuffer {
+        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+        // calculate start position
+        let bytesPerPixel = 4
+        let startAddress = baseAddress?.advanced(by: Int(region.minY) * bytesPerRow + Int(region.minX) * bytesPerPixel)
+        var croppedImageBuffer: CVPixelBuffer?
+        let status = CVPixelBufferCreateWithBytes(kCFAllocatorDefault,
+                                                  Int(region.width),
+                                                  Int(region.height),
+                                                  kCVPixelFormatType_32BGRA,
+                                                  startAddress!,
+                                                  bytesPerRow,
+                                                  nil,
+                                                  nil,
+                                                  nil,
+                                                  &croppedImageBuffer)
+        CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+        if (status != 0) {
+            print("CVPixelBufferCreate Error: ", status)
+        }
+        return croppedImageBuffer!
+    }
+    
+    func cropFaceWithCGContext(imageBuffer: CVPixelBuffer, region: CGRect) {
+        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let startAddress = baseAddress?.advanced(by: Int(region.minY) * bytesPerRow + Int(region.minX) * bytesPerPixel)
+        let context = CGContext(data: startAddress, width: Int(region.width), height: Int(region.height), bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+        let _: CGImage = context!.makeImage()!
+    }
+    
     func generateEmbeddings() {
         model = OpenFace()
         if let sourceImage = UIImage(named: "Aaron_Eckhart_0001") {
-//            preview.image = sourceImage
-            let inputImage = pixelBufferFromImage(image: sourceImage)
-            print("hello")
+            let imageBuffer = pixelBufferFromImage(image: sourceImage)
+            print("cvpixelbuffer", imageBuffer)
             do {
                 let start = CACurrentMediaTime()
-                let emb = try model?.prediction(data: inputImage)
+                let emb = try model?.prediction(data: imageBuffer)
                 let end = CACurrentMediaTime()
                 print("Time - \(end - start)")
                 print("fuck you", emb!.output)
             } catch {
-
             }
-
+            
+            var start = CACurrentMediaTime()
+            let output = cropFace(imageBuffer: imageBuffer, region: CGRect(x: 0, y: 0, width: 49, height: 49))
+            var end = CACurrentMediaTime()
+            print("CropFace Time:", end - start)
+            
+            start = CACurrentMediaTime()
+            cropFaceWithCGContext(imageBuffer: imageBuffer, region: CGRect(x: 0, y: 0, width: 49, height: 49))
+            end = CACurrentMediaTime()
+            print("CropFaceWithCGContext", end - start)
         }
     }
 }
