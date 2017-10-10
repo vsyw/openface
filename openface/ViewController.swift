@@ -71,6 +71,15 @@ class ViewController: UIViewController {
     var requests = [VNRequest]()
     var currentPixelBuffer: CVPixelBuffer?
     var count = 0
+    lazy var MLRequest: VNCoreMLRequest = {
+        // Load the ML model through its generated class and create a Vision request for it.
+        do {
+            let model = try VNCoreMLModel(for: OpenFace().model)
+            return VNCoreMLRequest(model: model, completionHandler: self.genEmbeddingsHandler)
+        } catch {
+            fatalError("can't load Vision ML model: \(error)")
+        }
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -133,6 +142,12 @@ class ViewController: UIViewController {
                 let y = CGFloat(CVPixelBufferGetHeight(pixelBuffer)) * (1 - boundingRect.minY) - h
                 let scaledRect = CGRect(x: x, y: y, width: w, height: h)
                 guard let croppedPixelBuffer = self.cropFace(imageBuffer: pixelBuffer, region: scaledRect) else { return }
+                let MLRequestHandler = VNImageRequestHandler(cvPixelBuffer: croppedPixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: [:])
+                do {
+                    try MLRequestHandler.perform([self.MLRequest])
+                } catch {
+                    print(error)
+                }
             }
         }
         
@@ -198,22 +213,11 @@ class ViewController: UIViewController {
         CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
         let _: CGImage = context!.makeImage()!
     }
-    
-    func generateEmbeddings() {
-        model = OpenFace()
-        if let sourceImage = UIImage(named: "Aaron_Eckhart_0001") {
-            let imageBuffer = pixelBufferFromImage(image: sourceImage)
-            print("cvpixelbuffer", imageBuffer)
-            do {
-                let start = CACurrentMediaTime()
-                let emb = try model?.prediction(data: imageBuffer)
-                let end = CACurrentMediaTime()
-                print("Time - \(end - start)")
-                print("fuck you", emb!.output)
-            } catch {
-            }
-            let output = resizePixelBuffer(imageBuffer, cropX: 0, cropY: 0, cropWidth: 49, cropHeight: 49, scaleWidth: 96, scaleHeight: 96)!
-        }
+
+    func genEmbeddingsHandler(request: VNRequest, error: Error?) {
+        guard let observations = request.results as? [ VNCoreMLFeatureValueObservation]
+            else { fatalError("unexpected result type from VNCoreMLRequest") }
+        print("What's this shit", observations)
     }
     
     func testPerfomance() {
