@@ -15,6 +15,7 @@
 		7F04B2EF1F6E776D00297CF9 /* openfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2EE1F6E776D00297CF9 /* openfaceTests.swift */; };
 		7F04B2FA1F6E776D00297CF9 /* openfaceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2F91F6E776D00297CF9 /* openfaceUITests.swift */; };
 		7F04B30E1F6ECF7D00297CF9 /* OpenFace.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B30D1F6ECF7900297CF9 /* OpenFace.mlmodel */; };
+		7F4279691F8A80B80051A95B /* CVPixelBuffer+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +51,7 @@
 		7F04B2FB1F6E776D00297CF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7F04B30D1F6ECF7900297CF9 /* OpenFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = OpenFace.mlmodel; path = "../../ML/keras-facenet/model/OpenFace.mlmodel"; sourceTree = "<group>"; };
 		7F04B30F1F6ED44100297CF9 /* OpenFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = OpenFace.mlmodel; path = "../../../ML/keras-facenet/model/OpenFace.mlmodel"; sourceTree = "<group>"; };
+		7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CVPixelBuffer+Helpers.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +106,7 @@
 				7F04B30F1F6ED44100297CF9 /* OpenFace.mlmodel */,
 				7F04B2D91F6E776D00297CF9 /* AppDelegate.swift */,
 				7F04B2DB1F6E776D00297CF9 /* ViewController.swift */,
+				7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */,
 				7F04B2DD1F6E776D00297CF9 /* Main.storyboard */,
 				7F04B2E01F6E776D00297CF9 /* Assets.xcassets */,
 				7F04B2E21F6E776D00297CF9 /* LaunchScreen.storyboard */,
@@ -265,6 +268,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7F04B2DC1F6E776D00297CF9 /* ViewController.swift in Sources */,
+				7F4279691F8A80B80051A95B /* CVPixelBuffer+Helpers.swift in Sources */,
 				7F04B30E1F6ECF7D00297CF9 /* OpenFace.mlmodel in Sources */,
 				7F04B2DA1F6E776D00297CF9 /* AppDelegate.swift in Sources */,
 			);
@@ -433,10 +437,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 483T6HJCFG;
+				DEVELOPMENT_TEAM = ZU5FQW7WG6;
 				INFOPLIST_FILE = openface/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = victor2.FaceDetection;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wangderland.openface;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -448,10 +452,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 483T6HJCFG;
+				DEVELOPMENT_TEAM = ZU5FQW7WG6;
 				INFOPLIST_FILE = openface/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = victor2.FaceDetection;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wangderland.openface;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

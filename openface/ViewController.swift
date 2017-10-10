@@ -69,6 +69,8 @@ class ViewController: UIViewController {
     var model: OpenFace!
     var session = AVCaptureSession()
     var requests = [VNRequest]()
+    var currentPixelBuffer: CVPixelBuffer?
+    var count = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -87,6 +89,11 @@ class ViewController: UIViewController {
         let deviceOutput = AVCaptureVideoDataOutput()
         deviceOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
         deviceOutput.setSampleBufferDelegate(self as AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
+        if let connection = deviceOutput.connection(with:  AVFoundation.AVMediaType.video) {
+            guard connection.isVideoOrientationSupported else { return }
+            print("Fuck youuuu")
+            connection.videoOrientation = .portrait
+        }
         session.addInput(deviceInput)
         session.addOutput(deviceOutput)
         
@@ -109,11 +116,26 @@ class ViewController: UIViewController {
     }
     
     func detectFaceHandler(request: VNRequest, error: Error?) {
+        print("Complete handler", self.count)
         guard let observations = request.results as? [VNFaceObservation] else {
             print("no result")
             return
         }
-//        let result = observations.map({$0 as? VNFaceObservation})
+        print("number of faces", observations.count)
+        let cropAndResizeFaceQueue = DispatchQueue(label: "com.wangderland.cropAndResizeQueue", qos: .userInteractive)
+        for region in observations {
+            cropAndResizeFaceQueue.async {
+                guard let pixelBuffer = self.currentPixelBuffer else { return }
+                let boundingRect = region.boundingBox
+                let x = boundingRect.minX * CGFloat(CVPixelBufferGetWidth(pixelBuffer))
+                let w = boundingRect.width * CGFloat(CVPixelBufferGetWidth(pixelBuffer))
+                let h = boundingRect.height * CGFloat(CVPixelBufferGetHeight(pixelBuffer))
+                let y = CGFloat(CVPixelBufferGetHeight(pixelBuffer)) * (1 - boundingRect.minY) - h
+                let scaledRect = CGRect(x: x, y: y, width: w, height: h)
+                guard let croppedPixelBuffer = self.cropFace(imageBuffer: pixelBuffer, region: scaledRect) else { return }
+            }
+        }
+        
         DispatchQueue.main.async() {
             self.preview.layer.sublayers?.removeSubrange(1...)
             
@@ -140,7 +162,7 @@ class ViewController: UIViewController {
         preview.layer.addSublayer(outline)
     }
     
-    func cropFace(imageBuffer: CVPixelBuffer, region: CGRect) -> CVPixelBuffer {
+    func cropFace(imageBuffer: CVPixelBuffer, region: CGRect) -> CVPixelBuffer? {
         CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
         let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
@@ -162,7 +184,7 @@ class ViewController: UIViewController {
         if (status != 0) {
             print("CVPixelBufferCreate Error: ", status)
         }
-        return croppedImageBuffer!
+        return croppedImageBuffer
     }
     
     func cropFaceWithCGContext(imageBuffer: CVPixelBuffer, region: CGRect) {
@@ -190,11 +212,32 @@ class ViewController: UIViewController {
                 print("fuck you", emb!.output)
             } catch {
             }
+            let output = resizePixelBuffer(imageBuffer, cropX: 0, cropY: 0, cropWidth: 49, cropHeight: 49, scaleWidth: 96, scaleHeight: 96)!
+        }
+    }
+    
+    func testPerfomance() {
+        if let sourceImage = UIImage(named: "Aaron_Eckhart_0001") {
+            let imageBuffer = pixelBufferFromImage(image: sourceImage)
+            print("cvpixelbuffer", imageBuffer)
+            do {
+                let start = CACurrentMediaTime()
+                let emb = try model?.prediction(data: imageBuffer)
+                let end = CACurrentMediaTime()
+                print("Time - \(end - start)")
+                print("fuck you", emb!.output)
+            } catch {
+            }
             
             var start = CACurrentMediaTime()
-            let output = cropFace(imageBuffer: imageBuffer, region: CGRect(x: 0, y: 0, width: 49, height: 49))
+            let output = resizePixelBuffer(imageBuffer, cropX: 0, cropY: 0, cropWidth: 49, cropHeight: 49, scaleWidth: 96, scaleHeight: 96)!
+            //            let output = cropFace(imageBuffer: imageBuffer, region: CGRect(x: 0, y: 0, width: 49, height: 49))
             var end = CACurrentMediaTime()
             print("CropFace Time:", end - start)
+            start = CACurrentMediaTime()
+            resizePixelBuffer(output, width: 96, height: 96, output: output, context: CIContext())
+            end = CACurrentMediaTime()
+            print("Resize Time: ", end - start)
             
             start = CACurrentMediaTime()
             cropFaceWithCGContext(imageBuffer: imageBuffer, region: CGRect(x: 0, y: 0, width: 49, height: 49))
@@ -206,20 +249,23 @@ class ViewController: UIViewController {
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        connection.videoOrientation = AVCaptureVideoOrientation.portrait
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
         }
-        
         var requestOptions:[VNImageOption : Any] = [:]
         
         if let camData = CMGetAttachment(sampleBuffer, kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix, nil) {
             requestOptions = [.cameraIntrinsics:camData]
         }
         
-        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 6)!, options: requestOptions)
+        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: requestOptions)
         
         do {
+            print("try perform request", self.count)
+            self.currentPixelBuffer = pixelBuffer
             try imageRequestHandler.perform(self.requests)
+            self.count += 1
         } catch {
             print(error)
         }
