@@ -82,7 +82,7 @@ class ViewController: UIViewController {
             print("no result")
             return
         }
-        print("number of faces", observations.count)
+//        print("number of faces", observations.count)
         let cropAndResizeFaceQueue = DispatchQueue(label: "com.wangderland.cropAndResizeQueue", qos: .userInteractive)
         for region in observations {
             cropAndResizeFaceQueue.async {
@@ -102,7 +102,6 @@ class ViewController: UIViewController {
                 }
             }
         }
-        
         DispatchQueue.main.async() {
             self.preview.layer.sublayers?.removeSubrange(1...)
             
@@ -175,14 +174,22 @@ class ViewController: UIViewController {
     func genEmbeddingsHandler(request: VNRequest, error: Error?) {
         guard let observations = request.results as? [ VNCoreMLFeatureValueObservation] else { return }
         print("Number of face features", observations.count)
-        _ = observations.map { (n) -> MLFeatureValue in
-            guard let value = n.featureValue.multiArrayValue else { return n.featureValue }
-            let doubleArr = buffer2Array(length: value.count, data: value.dataPointer, Double.self)
-            print("feature value ////////////", n.featureValue.multiArrayValue!)
-            print("doubleValue", doubleArr)
-//            print("multiArray", multiArray - multiArray)
-            
-            return n.featureValue
+        observations.forEach { observe in
+            guard let emb = observe.featureValue.multiArrayValue else { return }
+            let doubleValueEmb = buffer2Array(length: emb.count, data: emb.dataPointer, Double.self)
+//            print("feature value ////////////", observe.featureValue.multiArrayValue!)
+//            print("doubleValue", doubleValueEmb)
+            guard let repsMatrix = self.repsMatrix else { return }
+            let embMatrix = Matrix(Array(repeating: doubleValueEmb, count: repsMatrix.rows))
+            let diff = repsMatrix - embMatrix
+            let squredDiff = myPow(diff, 2)
+            let l2 = sum(squredDiff, axies:.row)
+            let minVal = l2.grid.min()
+            var ans: String = "Unknown"
+            guard let minIdx = l2.grid.index(of: minVal!) else { return }
+            guard let labelsArray = self.labelsArray else { return }
+            ans = labelsArray[minIdx]
+            print("My ans:", ans)
         }
     }
     
