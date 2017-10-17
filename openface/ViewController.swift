@@ -12,57 +12,6 @@ import AVFoundation
 import Vision
 import Accelerate
 
-func pixelBufferFromImage(image: UIImage) -> CVPixelBuffer {
-    
-//    let newImage = resize(image: image, newSize: CGSize(width: 224/3.0, height: 224/3.0))
-    
-    let ciimage = CIImage(image: image)
-    let tmpcontext = CIContext(options: nil)
-    let cgimage =  tmpcontext.createCGImage(ciimage!, from: ciimage!.extent)
-    
-    let cfnumPointer = UnsafeMutablePointer<UnsafeRawPointer>.allocate(capacity: 1)
-    let cfnum = CFNumberCreate(kCFAllocatorDefault, .intType, cfnumPointer)
-    let keys: [CFString] = [kCVPixelBufferCGImageCompatibilityKey, kCVPixelBufferCGBitmapContextCompatibilityKey, kCVPixelBufferBytesPerRowAlignmentKey]
-    let values: [CFTypeRef] = [kCFBooleanTrue, kCFBooleanTrue, cfnum!]
-    let keysPointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
-    let valuesPointer =  UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
-    keysPointer.initialize(to: keys)
-    valuesPointer.initialize(to: values)
-    
-    let options = CFDictionaryCreate(kCFAllocatorDefault, keysPointer, valuesPointer, keys.count, nil, nil)
-    
-    let width = cgimage!.width
-    let height = cgimage!.height
-    
-    var pxbuffer: CVPixelBuffer?
-    var status = CVPixelBufferCreate(kCFAllocatorDefault, width, height,
-                                     kCVPixelFormatType_32BGRA, options, &pxbuffer)
-    status = CVPixelBufferLockBaseAddress(pxbuffer!, CVPixelBufferLockFlags(rawValue: 0))
-    
-    let bufferAddress = CVPixelBufferGetBaseAddress(pxbuffer!)
-    
-    
-    let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-    let bytesperrow = CVPixelBufferGetBytesPerRow(pxbuffer!)
-    let context = CGContext(data: bufferAddress,
-                            width: width,
-                            height: height,
-                            bitsPerComponent: 8,
-                            bytesPerRow: bytesperrow,
-                            space: rgbColorSpace,
-                            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-    context?.concatenate(CGAffineTransform(rotationAngle: 0))
-//    context?.concatenate(__CGAffineTransformMake( 1, 0, 0, -1, 0, CGFloat(height) )) //Flip Vertical
-    
-    
-    
-    context?.draw(cgimage!, in: CGRect(x:0, y:0, width:CGFloat(width), height:CGFloat(height)))
-    status = CVPixelBufferUnlockBaseAddress(pxbuffer!, CVPixelBufferLockFlags(rawValue: 0))
-    return pxbuffer!
-    
-}
-
-
 class ViewController: UIViewController {
     @IBOutlet weak var preview: UIImageView!
     
@@ -71,6 +20,9 @@ class ViewController: UIViewController {
     var requests = [VNRequest]()
     var currentPixelBuffer: CVPixelBuffer?
     var count = 0
+    var labelsArray: [String]?
+    var repsMatrix: Matrix<Double>?
+    
     lazy var MLRequest: VNCoreMLRequest = {
         // Load the ML model through its generated class and create a Vision request for it.
         do {
@@ -83,9 +35,9 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        readDataFromCSV()
         startLiveVideo()
         startFaceDetection()
-//        generateEmbeddings()
     }
     
     func startLiveVideo() {
@@ -125,7 +77,7 @@ class ViewController: UIViewController {
     }
     
     func detectFaceHandler(request: VNRequest, error: Error?) {
-        print("Complete handler", self.count)
+//        print("Complete handler", self.count)
         guard let observations = request.results as? [VNFaceObservation] else {
             print("no result")
             return
@@ -214,10 +166,24 @@ class ViewController: UIViewController {
         let _: CGImage = context!.makeImage()!
     }
 
+    func buffer2Array<T>(length: Int, data: UnsafeMutableRawPointer, _: T.Type) -> [T] {
+        let ptr = data.bindMemory(to: T.self, capacity: length)
+        let buffer = UnsafeBufferPointer(start: ptr, count: length)
+        return Array(buffer)
+    }
+    
     func genEmbeddingsHandler(request: VNRequest, error: Error?) {
-        guard let observations = request.results as? [ VNCoreMLFeatureValueObservation]
-            else { fatalError("unexpected result type from VNCoreMLRequest") }
-        print("What's this shit", observations)
+        guard let observations = request.results as? [ VNCoreMLFeatureValueObservation] else { return }
+        print("Number of face features", observations.count)
+        _ = observations.map { (n) -> MLFeatureValue in
+            guard let value = n.featureValue.multiArrayValue else { return n.featureValue }
+            let doubleArr = buffer2Array(length: value.count, data: value.dataPointer, Double.self)
+            print("feature value ////////////", n.featureValue.multiArrayValue!)
+            print("doubleValue", doubleArr)
+//            print("multiArray", multiArray - multiArray)
+            
+            return n.featureValue
+        }
     }
     
     func testPerfomance() {
@@ -249,6 +215,21 @@ class ViewController: UIViewController {
             print("CropFaceWithCGContext", end - start)
         }
     }
+    
+    func readDataFromCSV() {
+        print("fuck you")
+        guard let labelsPath = Bundle.main.path(forResource: "labels_mini", ofType: "csv") else { return }
+        guard let repsPath = Bundle.main.path(forResource: "reps_mini", ofType: "csv") else { return }
+        let labels = try! String(contentsOfFile: labelsPath, encoding: String.Encoding.utf8)
+        let reps = try! String(contentsOfFile: repsPath, encoding: String.Encoding.utf8)
+        let labelsArray: [String] = labels.components(separatedBy: "\r").map{ $0.components(separatedBy: "/")[3] }
+        let repsArray: [[Double]] = reps
+            .components(separatedBy: "\r")
+            .map{ $0.components(separatedBy: ",").map{ Double($0)! }}
+        let repsMatrix = Matrix(repsArray)
+        self.labelsArray = labelsArray
+        self.repsMatrix = repsMatrix
+    }
 }
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -266,7 +247,7 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: requestOptions)
         
         do {
-            print("try perform request", self.count)
+//            print("try perform request", self.count)
             self.currentPixelBuffer = pixelBuffer
             try imageRequestHandler.perform(self.requests)
             self.count += 1
