@@ -20,6 +20,7 @@ class ViewController: UIViewController {
     var requests = [VNRequest]()
     var currentPixelBuffer: CVPixelBuffer?
     var count = 0
+    var currentLabelRect: [CGRect]?
     var labelsArray: [String]?
     var repsMatrix: Matrix<Double>?
     
@@ -38,11 +39,12 @@ class ViewController: UIViewController {
         readDataFromCSV()
         startLiveVideo()
         startFaceDetection()
+//        testPerfomance()
     }
     
     func startLiveVideo() {
         //1
-        session.sessionPreset = AVCaptureSession.Preset.hd1920x1080
+        session.sessionPreset = AVCaptureSession.Preset.hd4K3840x2160
         let captureDevice = AVCaptureDevice.default(for: AVMediaType.video)
         
         //2
@@ -52,7 +54,6 @@ class ViewController: UIViewController {
         deviceOutput.setSampleBufferDelegate(self as AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue.global(qos: DispatchQoS.QoSClass.default))
         if let connection = deviceOutput.connection(with:  AVFoundation.AVMediaType.video) {
             guard connection.isVideoOrientationSupported else { return }
-            print("Fuck youuuu")
             connection.videoOrientation = .portrait
         }
         session.addInput(deviceInput)
@@ -76,15 +77,28 @@ class ViewController: UIViewController {
         self.requests = [faceRequest]
     }
     
+    func scale(rect: CGRect, view: UIView) -> CGRect {
+        let x = rect.minX * view.frame.size.width
+        let w = rect.width * view.frame.size.width
+        let h = rect.height * view.frame.size.height
+        let y = view.frame.size.height * (1 - rect.minY) - h
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+    
     func detectFaceHandler(request: VNRequest, error: Error?) {
 //        print("Complete handler", self.count)
         guard let observations = request.results as? [VNFaceObservation] else {
             print("no result")
             return
         }
+//        if (observations.count == 0) { return }
 //        print("number of faces", observations.count)
+        self.currentLabelRect = []
+        DispatchQueue.main.async() {
+            self.preview.subviews.forEach({ $0.removeFromSuperview() })
+        }
         let cropAndResizeFaceQueue = DispatchQueue(label: "com.wangderland.cropAndResizeQueue", qos: .userInteractive)
-        for region in observations {
+        for (idx, region) in observations.enumerated() {
             cropAndResizeFaceQueue.async {
                 guard let pixelBuffer = self.currentPixelBuffer else { return }
                 let boundingRect = region.boundingBox
@@ -96,6 +110,9 @@ class ViewController: UIViewController {
                 guard let croppedPixelBuffer = self.cropFace(imageBuffer: pixelBuffer, region: scaledRect) else { return }
                 let MLRequestHandler = VNImageRequestHandler(cvPixelBuffer: croppedPixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: [:])
                 do {
+                    print("First", self.count)
+                    let scaledRect = self.scale(rect: boundingRect, view: self.preview)
+                    self.currentLabelRect?.append(CGRect(x: scaledRect.minX, y: scaledRect.minY - 100, width: scaledRect.width * 2, height: scaledRect.height))
                     try MLRequestHandler.perform([self.MLRequest])
                 } catch {
                     print(error)
@@ -103,8 +120,15 @@ class ViewController: UIViewController {
             }
         }
         DispatchQueue.main.async() {
+            print("Second", self.count)
             self.preview.layer.sublayers?.removeSubrange(1...)
-            
+            let a = self.preview.subviews.count
+//            print("a", a)
+//            for view in self.preview.subviews {
+//                view.removeFromSuperview()
+//            }
+            let b = self.preview.subviews.count
+//            print("b", b)
             for region in observations {
                 self.highlightFace(faceObservation: region)
             }
@@ -113,8 +137,6 @@ class ViewController: UIViewController {
     
     func highlightFace(faceObservation: VNFaceObservation) {
         let boundingRect = faceObservation.boundingBox
-        print("boundingRect", boundingRect)
-        
         let x = boundingRect.minX * preview.frame.size.width
         let w = boundingRect.width * preview.frame.size.width
         let h = boundingRect.height * preview.frame.size.height
@@ -173,12 +195,9 @@ class ViewController: UIViewController {
     
     func genEmbeddingsHandler(request: VNRequest, error: Error?) {
         guard let observations = request.results as? [ VNCoreMLFeatureValueObservation] else { return }
-        print("Number of face features", observations.count)
         observations.forEach { observe in
             guard let emb = observe.featureValue.multiArrayValue else { return }
             let doubleValueEmb = buffer2Array(length: emb.count, data: emb.dataPointer, Double.self)
-//            print("feature value ////////////", observe.featureValue.multiArrayValue!)
-//            print("doubleValue", doubleValueEmb)
             guard let repsMatrix = self.repsMatrix else { return }
             let embMatrix = Matrix(Array(repeating: doubleValueEmb, count: repsMatrix.rows))
             let diff = repsMatrix - embMatrix
@@ -189,7 +208,24 @@ class ViewController: UIViewController {
             guard let minIdx = l2.grid.index(of: minVal!) else { return }
             guard let labelsArray = self.labelsArray else { return }
             ans = labelsArray[minIdx]
-            print("My ans:", ans)
+//            print("current idx", self.count)
+//            print("My ans:", ans)
+            DispatchQueue.main.async() {
+                guard let labelRectArr = self.currentLabelRect else { return }
+                for labelRect in labelRectArr {
+                    let faceLabel = UILabel()
+                    faceLabel.backgroundColor = UIColor.lightGray
+                    faceLabel.textColor = UIColor.black
+                    faceLabel.frame = labelRect
+                    faceLabel.text = ans
+                    let a = self.preview.subviews.count
+                    print("Third", self.count)
+                    //                print("gem A", a)
+                    self.preview.addSubview(faceLabel)
+                    let b = self.preview.subviews.count
+                    //                print("gem B", b)
+                }
+            }
         }
     }
     
@@ -224,7 +260,6 @@ class ViewController: UIViewController {
     }
     
     func readDataFromCSV() {
-        print("fuck you")
         guard let labelsPath = Bundle.main.path(forResource: "labels_mini", ofType: "csv") else { return }
         guard let repsPath = Bundle.main.path(forResource: "reps_mini", ofType: "csv") else { return }
         let labels = try! String(contentsOfFile: labelsPath, encoding: String.Encoding.utf8)
