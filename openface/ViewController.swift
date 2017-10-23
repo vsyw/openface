@@ -20,7 +20,7 @@ class ViewController: UIViewController {
     var requests = [VNRequest]()
     var currentPixelBuffer: CVPixelBuffer?
     var count = 0
-    var currentLabelRect: [CGRect]?
+    var currentLabelRect = [CGRect]()
     var labelsArray: [String]?
     var repsMatrix: Matrix<Double>?
     
@@ -68,10 +68,6 @@ class ViewController: UIViewController {
         session.startRunning()
     }
 
-    override func viewDidLayoutSubviews() {
-        preview.layer.sublayers?[0].frame = preview.bounds
-    }
-    
     func startFaceDetection() {
         let faceRequest = VNDetectFaceRectanglesRequest(completionHandler: self.detectFaceHandler)
         self.requests = [faceRequest]
@@ -86,19 +82,20 @@ class ViewController: UIViewController {
     }
     
     func detectFaceHandler(request: VNRequest, error: Error?) {
-//        print("Complete handler", self.count)
         guard let observations = request.results as? [VNFaceObservation] else {
             print("no result")
             return
         }
-//        if (observations.count == 0) { return }
-//        print("number of faces", observations.count)
         self.currentLabelRect = []
         DispatchQueue.main.async() {
-            self.preview.subviews.forEach({ $0.removeFromSuperview() })
+            for (idx, subView) in self.view.subviews.enumerated() {
+                if (idx != 0) {
+                    subView.removeFromSuperview()
+                }
+            }
         }
         let cropAndResizeFaceQueue = DispatchQueue(label: "com.wangderland.cropAndResizeQueue", qos: .userInteractive)
-        for (idx, region) in observations.enumerated() {
+        for region in observations {
             cropAndResizeFaceQueue.async {
                 guard let pixelBuffer = self.currentPixelBuffer else { return }
                 let boundingRect = region.boundingBox
@@ -110,9 +107,8 @@ class ViewController: UIViewController {
                 guard let croppedPixelBuffer = self.cropFace(imageBuffer: pixelBuffer, region: scaledRect) else { return }
                 let MLRequestHandler = VNImageRequestHandler(cvPixelBuffer: croppedPixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: [:])
                 do {
-                    print("First", self.count)
                     let scaledRect = self.scale(rect: boundingRect, view: self.preview)
-                    self.currentLabelRect?.append(CGRect(x: scaledRect.minX, y: scaledRect.minY - 100, width: scaledRect.width * 2, height: scaledRect.height))
+                    self.currentLabelRect.append(CGRect(x: scaledRect.minX, y: scaledRect.minY - 100, width: scaledRect.width * 2, height: scaledRect.height))
                     try MLRequestHandler.perform([self.MLRequest])
                 } catch {
                     print(error)
@@ -120,15 +116,7 @@ class ViewController: UIViewController {
             }
         }
         DispatchQueue.main.async() {
-            print("Second", self.count)
             self.preview.layer.sublayers?.removeSubrange(1...)
-            let a = self.preview.subviews.count
-//            print("a", a)
-//            for view in self.preview.subviews {
-//                view.removeFromSuperview()
-//            }
-            let b = self.preview.subviews.count
-//            print("b", b)
             for region in observations {
                 self.highlightFace(faceObservation: region)
             }
@@ -211,19 +199,14 @@ class ViewController: UIViewController {
 //            print("current idx", self.count)
 //            print("My ans:", ans)
             DispatchQueue.main.async() {
-                guard let labelRectArr = self.currentLabelRect else { return }
-                for labelRect in labelRectArr {
+//                guard let labelRectArr = self.currentLabelRect else { return }
+                for labelRect in self.currentLabelRect {
                     let faceLabel = UILabel()
                     faceLabel.backgroundColor = UIColor.lightGray
                     faceLabel.textColor = UIColor.black
                     faceLabel.frame = labelRect
                     faceLabel.text = ans
-                    let a = self.preview.subviews.count
-                    print("Third", self.count)
-                    //                print("gem A", a)
-                    self.preview.addSubview(faceLabel)
-                    let b = self.preview.subviews.count
-                    //                print("gem B", b)
+                    self.view.addSubview(faceLabel)
                 }
             }
         }
