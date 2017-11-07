@@ -23,6 +23,9 @@ class ViewController: UIViewController {
     var currentLabelRect = [CGRect]()
     var labelsArray: [String]?
     var repsMatrix: Matrix<Double>?
+    var shouldGemEmbedding = 1
+    var start = CACurrentMediaTime()
+    var end = CACurrentMediaTime()
     
     lazy var MLRequest: VNCoreMLRequest = {
         // Load the ML model through its generated class and create a Vision request for it.
@@ -86,13 +89,19 @@ class ViewController: UIViewController {
             print("no result")
             return
         }
-        self.currentLabelRect = []
         DispatchQueue.main.async() {
-            for (idx, subView) in self.view.subviews.enumerated() {
-                if (idx != 0) {
-                    subView.removeFromSuperview()
-                }
+            self.preview.layer.sublayers?.removeSubrange(1...)
+            for region in observations {
+                self.highlightFace(faceObservation: region)
             }
+        }
+        
+        if (self.shouldGemEmbedding % 2 == 0) {
+            self.shouldGemEmbedding = 1
+            self.currentLabelRect = []
+        } else {
+            self.shouldGemEmbedding = self.shouldGemEmbedding + 1
+            return
         }
         let cropAndResizeFaceQueue = DispatchQueue(label: "com.wangderland.cropAndResizeQueue", qos: .userInteractive)
         for region in observations {
@@ -108,17 +117,11 @@ class ViewController: UIViewController {
                 let MLRequestHandler = VNImageRequestHandler(cvPixelBuffer: croppedPixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: [:])
                 do {
                     let scaledRect = self.scale(rect: boundingRect, view: self.preview)
-                    self.currentLabelRect.append(CGRect(x: scaledRect.minX, y: scaledRect.minY - 100, width: scaledRect.width * 2, height: scaledRect.height))
+                    self.currentLabelRect.append(CGRect(x: scaledRect.minX, y: scaledRect.minY - 60, width: 200, height: 50))
                     try MLRequestHandler.perform([self.MLRequest])
                 } catch {
                     print(error)
                 }
-            }
-        }
-        DispatchQueue.main.async() {
-            self.preview.layer.sublayers?.removeSubrange(1...)
-            for region in observations {
-                self.highlightFace(faceObservation: region)
             }
         }
     }
@@ -182,8 +185,10 @@ class ViewController: UIViewController {
     }
     
     func genEmbeddingsHandler(request: VNRequest, error: Error?) {
+        
         guard let observations = request.results as? [ VNCoreMLFeatureValueObservation] else { return }
         observations.forEach { observe in
+            self.start = CACurrentMediaTime()
             guard let emb = observe.featureValue.multiArrayValue else { return }
             let doubleValueEmb = buffer2Array(length: emb.count, data: emb.dataPointer, Double.self)
             guard let repsMatrix = self.repsMatrix else { return }
@@ -191,15 +196,24 @@ class ViewController: UIViewController {
             let diff = repsMatrix - embMatrix
             let squredDiff = myPow(diff, 2)
             let l2 = sum(squredDiff, axies:.row)
+            let grid = l2.grid
             let minVal = l2.grid.min()
             var ans: String = "Unknown"
             guard let minIdx = l2.grid.index(of: minVal!) else { return }
             guard let labelsArray = self.labelsArray else { return }
             ans = labelsArray[minIdx]
-//            print("current idx", self.count)
-//            print("My ans:", ans)
+            
+            self.end = CACurrentMediaTime()
+            print("name: \(ans), distance: \(minVal)")
+            print("Gem time", self.end - self.start)
+            
             DispatchQueue.main.async() {
 //                guard let labelRectArr = self.currentLabelRect else { return }
+                for (idx, subView) in self.view.subviews.enumerated() {
+                    if (idx != 0) {
+                        subView.removeFromSuperview()
+                    }
+                }
                 for labelRect in self.currentLabelRect {
                     let faceLabel = UILabel()
                     faceLabel.backgroundColor = UIColor.lightGray
@@ -243,22 +257,37 @@ class ViewController: UIViewController {
     }
     
     func readDataFromCSV() {
-        guard let labelsPath = Bundle.main.path(forResource: "labels_mini", ofType: "csv") else { return }
-        guard let repsPath = Bundle.main.path(forResource: "reps_mini", ofType: "csv") else { return }
+        guard let labelsPath = Bundle.main.path(forResource: "labels2", ofType: "csv") else { return }
+        guard let repsPath = Bundle.main.path(forResource: "reps2", ofType: "csv") else { return }
         let labels = try! String(contentsOfFile: labelsPath, encoding: String.Encoding.utf8)
         let reps = try! String(contentsOfFile: repsPath, encoding: String.Encoding.utf8)
-        let labelsArray: [String] = labels.components(separatedBy: "\r").map{ $0.components(separatedBy: "/")[3] }
+        let labelsArray: [String] = labels.components(separatedBy: "\r")
+            .filter{ $0.count > 0 }
+            .map{
+//                print($0.components(separatedBy: "/"))
+                return $0.components(separatedBy: "/")[3]
+            }
+        print("Done Labels")
+        self.start = CACurrentMediaTime()
         let repsArray: [[Double]] = reps
             .components(separatedBy: "\r")
-            .map{ $0.components(separatedBy: ",").map{ Double($0)! }}
+            .filter{ $0.count > 0 }
+            .map{
+//                print($0.components(separatedBy: ","))
+                return $0.components(separatedBy: ",").map{ Double($0)! }
+            }
+        print("Done Reps")
         let repsMatrix = Matrix(repsArray)
         self.labelsArray = labelsArray
         self.repsMatrix = repsMatrix
+        self.end = CACurrentMediaTime()
+        print("Done Import data:", self.end - self.start)
     }
 }
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+//        start = CACurrentMediaTime()
         connection.videoOrientation = AVCaptureVideoOrientation.portrait
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
@@ -272,7 +301,6 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: CGImagePropertyOrientation(rawValue: 1)!, options: requestOptions)
         
         do {
-//            print("try perform request", self.count)
             self.currentPixelBuffer = pixelBuffer
             try imageRequestHandler.perform(self.requests)
             self.count += 1

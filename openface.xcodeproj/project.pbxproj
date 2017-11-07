@@ -23,6 +23,8 @@
 		7F04B2EF1F6E776D00297CF9 /* openfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2EE1F6E776D00297CF9 /* openfaceTests.swift */; };
 		7F04B2FA1F6E776D00297CF9 /* openfaceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F04B2F91F6E776D00297CF9 /* openfaceUITests.swift */; };
 		7F4279691F8A80B80051A95B /* CVPixelBuffer+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */; };
+		7F4E8BFD1FA9748A00CF638C /* labels2.csv in Resources */ = {isa = PBXBuildFile; fileRef = 7F4E8BFC1FA9733A00CF638C /* labels2.csv */; };
+		7F4E8BFE1FA9748A00CF638C /* reps2.csv in Resources */ = {isa = PBXBuildFile; fileRef = 7F4E8BFB1FA9733900CF638C /* reps2.csv */; };
 		7F510DF41F95B0F10042F284 /* reps_mini.csv in Resources */ = {isa = PBXBuildFile; fileRef = 7F510DF21F95B0DC0042F284 /* reps_mini.csv */; };
 		7F510DF61F95B10E0042F284 /* labels_mini.csv in Resources */ = {isa = PBXBuildFile; fileRef = 7F510DF51F95B1080042F284 /* labels_mini.csv */; };
 		7F510DF81F95B1650042F284 /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F510DF71F95B1650042F284 /* Matrix.swift */; };
@@ -69,9 +71,12 @@
 		7F04B2F91F6E776D00297CF9 /* openfaceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = openfaceUITests.swift; sourceTree = "<group>"; };
 		7F04B2FB1F6E776D00297CF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CVPixelBuffer+Helpers.swift"; sourceTree = "<group>"; };
+		7F4E8BFB1FA9733900CF638C /* reps2.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = reps2.csv; sourceTree = "<group>"; };
+		7F4E8BFC1FA9733A00CF638C /* labels2.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = labels2.csv; sourceTree = "<group>"; };
 		7F510DF21F95B0DC0042F284 /* reps_mini.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = reps_mini.csv; sourceTree = "<group>"; };
 		7F510DF51F95B1080042F284 /* labels_mini.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = labels_mini.csv; sourceTree = "<group>"; };
 		7F510DF71F95B1650042F284 /* Matrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
+		7F910F481FA36A300016E6DD /* OpenFace.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = OpenFace.mlmodel; path = "../../../ML/keras-facenet/model/OpenFace.mlmodel"; sourceTree = "<group>"; };
 		982E115275A829C64DE11245 /* Pods-openfaceTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-openfaceTests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-openfaceTests/Pods-openfaceTests.debug.xcconfig"; sourceTree = "<group>"; };
 		C110155ED1A9B3BA9B9D0DC9 /* Pods_openfaceUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_openfaceUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4DDB537936440AE33F9F25B /* Pods-openfaceUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-openfaceUITests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-openfaceUITests/Pods-openfaceUITests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -137,6 +142,8 @@
 				7F04B2E01F6E776D00297CF9 /* Assets.xcassets */,
 				7F510DF21F95B0DC0042F284 /* reps_mini.csv */,
 				7F009B121F8E7E50006142E8 /* reps.csv */,
+				7F4E8BFC1FA9733A00CF638C /* labels2.csv */,
+				7F4E8BFB1FA9733900CF638C /* reps2.csv */,
 				7F510DF51F95B1080042F284 /* labels_mini.csv */,
 				7F009B0B1F8E7765006142E8 /* labels.csv */,
 			);
@@ -169,6 +176,7 @@
 		7F04B2D81F6E776D00297CF9 /* openface */ = {
 			isa = PBXGroup;
 			children = (
+				7F910F481FA36A300016E6DD /* OpenFace.mlmodel */,
 				7F04B2D91F6E776D00297CF9 /* AppDelegate.swift */,
 				7F04B2DB1F6E776D00297CF9 /* ViewController.swift */,
 				7F4279681F8A80B70051A95B /* CVPixelBuffer+Helpers.swift */,
@@ -314,6 +322,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F4E8BFD1FA9748A00CF638C /* labels2.csv in Resources */,
+				7F4E8BFE1FA9748A00CF638C /* reps2.csv in Resources */,
 				7F510DF61F95B10E0042F284 /* labels_mini.csv in Resources */,
 				7F510DF41F95B0F10042F284 /* reps_mini.csv in Resources */,
 				7F009B131F8E7E68006142E8 /* reps.csv in Resources */,
